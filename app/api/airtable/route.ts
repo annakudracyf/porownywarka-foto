@@ -2,11 +2,14 @@ import { NextResponse } from 'next/server';
 
 export async function GET() {
   const token = process.env.NEXT_PUBLIC_AIRTABLE_TOKEN;
-  const baseId = 'appKv6wNZURjEnver';
+  const baseId = process.env.AIRTABLE_BASE_ID || 'appKv6wNZURjEnver';
   const tableName = 'Produkty';
 
+  // Logowanie BASE_ID dla celów debugowania (bez tokenu!)
+  console.log("BASE_ID:", baseId);
+
   if (!token) {
-    return NextResponse.json({ error: "Brak tokenu w .env.local" }, { status: 500 });
+    return NextResponse.json({ error: "Brak tokenu NEXT_PUBLIC_AIRTABLE_TOKEN w środowisku" }, { status: 500 });
   }
 
   try {
@@ -24,7 +27,12 @@ export async function GET() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        return NextResponse.json({ error: "Błąd Airtable", details: errorData }, { status: response.status });
+        console.error("Airtable API Error Detail:", errorData);
+        return NextResponse.json({ 
+          error: "Błąd Airtable API", 
+          status: response.status,
+          details: errorData 
+        }, { status: response.status });
       }
 
       const data = await response.json();
@@ -33,7 +41,7 @@ export async function GET() {
       
     } while (offset);
 
-    // Mapowanie danych na backendzie (zgodnie z prośbą o matrycę)
+    // Mapowanie danych na backendzie
     const mappedProducts = allRecords.map((record: any) => ({
       id: record.id,
       nazwa: record.fields.title || "Bez nazwy",
@@ -52,8 +60,12 @@ export async function GET() {
     }));
 
     return NextResponse.json(mappedProducts);
-  } catch (error) {
-    console.error('API Error:', error);
-    return NextResponse.json({ error: "Błąd połączenia" }, { status: 500 });
+  } catch (error: any) {
+    console.error('Fatal API Error:', error);
+    return NextResponse.json({ 
+      error: "Wystąpił krytyczny błąd serwera", 
+      message: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    }, { status: 500 });
   }
 }
