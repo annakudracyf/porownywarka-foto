@@ -16,6 +16,9 @@ export async function GET() {
     let allRecords: any[] = [];
     let offset = '';
 
+    // Logowanie przed zapytaniem
+    console.log("Próba połączenia z tabelą Produkty...");
+
     // Loop until all records are fetched (Airtable limit is 100 per page)
     do {
       const url = `https://api.airtable.com/v0/${baseId}/${encodeURIComponent(tableName)}?maxRecords=300&pageSize=100${offset ? `&offset=${offset}` : ''}`;
@@ -26,12 +29,28 @@ export async function GET() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        console.error("Airtable API Error Detail:", errorData);
+        let errorMsg = "Błąd Airtable API";
+        let errorDetail = {};
+        
+        try {
+          const errorData = await response.json();
+          errorDetail = errorData;
+          // Airtable zazwyczaj zwraca błąd w formacie { error: { message: "...", type: "..." } }
+          if (errorData.error && errorData.error.message) {
+            errorMsg = `Airtable Error: ${errorData.error.message}`;
+          } else if (errorData.message) {
+            errorMsg = `Airtable Error: ${errorData.message}`;
+          }
+        } catch (e) {
+          errorMsg = `Błąd Airtable (${response.status}): ${response.statusText}`;
+        }
+
+        console.error("Airtable API Error Detail:", errorDetail);
+        
         return NextResponse.json({ 
-          error: "Błąd Airtable API", 
+          error: errorMsg, 
           status: response.status,
-          details: errorData 
+          details: errorDetail 
         }, { status: response.status });
       }
 
