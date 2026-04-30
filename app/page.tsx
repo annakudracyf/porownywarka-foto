@@ -8,6 +8,7 @@ export default function KatalogCyfroweUltraFix() {
   const [podkategoria, setPodkategoria] = useState("Aparat");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"karty" | "tabela">("karty");
+  const [comparisonViewMode, setComparisonViewMode] = useState<"karty" | "tabela">("karty");
   const [selectedProducts, setSelectedProducts] = useState<any[]>([]);
   const [showComparison, setShowComparison] = useState(false);
   const [licznik, setLicznik] = useState(0);
@@ -328,59 +329,122 @@ export default function KatalogCyfroweUltraFix() {
             
             <div className="flex flex-row justify-between items-center gap-6 mb-8 border-b-4 border-[#00B7D1] pb-4 pr-12">
               <h2 className={`text-2xl md:text-3xl font-black uppercase italic font-heading tracking-widest ${darkMode ? "text-white" : "text-black"}`}>Porównanie Sprzętu</h2>
+              <div className={`flex ${darkMode ? "bg-black/40" : "bg-gray-100"} p-1 border-2 ${theme.border} shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] shrink-0`}>
+                <button 
+                  onClick={() => setComparisonViewMode("karty")}
+                  className={`px-3 py-1.5 flex items-center gap-2 text-[10px] font-bold uppercase transition-all ${comparisonViewMode === "karty" ? "bg-black text-white" : "text-black hover:bg-black/5"}`}
+                >
+                  <LayoutGrid size={14} /> Karty
+                </button>
+                <button 
+                  onClick={() => setComparisonViewMode("tabela")}
+                  className={`px-3 py-1.5 flex items-center gap-2 text-[10px] font-bold uppercase transition-all ${comparisonViewMode === "tabela" ? "bg-black text-white" : "text-black hover:bg-black/5"}`}
+                >
+                  <Table size={14} /> Tabela
+                </button>
+              </div>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch">
-              {selectedProducts.map(p => (
-                <div key={p.id} className="bg-white border-2 border-black p-6 space-y-4 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] opacity-100 flex flex-col h-full">
-                  <div className="h-40 bg-gray-100 flex items-center justify-center border-b-2 border-black/10 relative shrink-0">
-                    {p.zdjecie ? (
-                      <img src={p.zdjecie} alt={p.nazwa} className="w-full h-full object-contain p-4 mix-blend-multiply" />
-                    ) : (
-                      <Camera size={48} className="opacity-10 text-black" />
-                    )}
-                    <div className="absolute bottom-0 right-0 px-1.5 py-1 font-semibold text-[8px] uppercase border-l-2 border-t-2 border-black bg-[#EEE800] text-black font-heading tracking-widest leading-none">{p.marka}</div>
-                  </div>
-                  <div className="flex-grow flex flex-col">
-                    <div className="mb-4">
-                      <p className="text-[11px] text-gray-500 font-bold uppercase tracking-widest mb-1 font-heading">{p.marka}</p>
-                      <h3 className="text-[18px] font-semibold uppercase leading-relaxed tracking-tighter text-black font-heading min-h-[60px] line-clamp-3">{p.nazwa}</h3>
-                      <span className="font-bold text-3xl mt-1 block text-black font-sans">{p.cena}</span>
+            {comparisonViewMode === "karty" ? (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch">
+                {selectedProducts.map(p => (
+                  <div key={p.id} className={`border-2 ${theme.border} p-6 space-y-4 ${theme.shadow} opacity-100 flex flex-col h-full ${darkMode ? "bg-black" : "bg-white"}`}>
+                    <div className={`h-40 ${darkMode ? "bg-black/40" : "bg-gray-100"} flex items-center justify-center border-b-2 ${theme.border} relative shrink-0`}>
+                      {p.zdjecie ? (
+                        <img src={p.zdjecie} alt={p.nazwa} className="w-full h-full object-contain p-4 mix-blend-multiply" style={darkMode ? { filter: 'invert(1) hue-rotate(180deg)' } : {}} />
+                      ) : (
+                        <Camera size={48} className="opacity-10 text-black" />
+                      )}
+                      <div className="absolute bottom-0 right-0 px-1.5 py-1 font-semibold text-[8px] uppercase border-l-2 border-t-2 border-black bg-[#EEE800] text-black font-heading tracking-widest leading-none">{p.marka}</div>
                     </div>
-                    
-                    <div className="space-y-0 pt-2 border-t-2 border-black/10 mb-6">
-                      {[
-                        { label: "Marka", value: p.marka },
-                        { label: "Kategoria", value: `${p.dzial} / ${p.podkategoria}` },
-                        { label: "Mocowanie", value: p.mocowanie },
-                        { label: "Rozmiar matrycy", value: p.matryca },
-                        { label: "Rozdzielczość", value: p.mpix },
-                        { label: "Akumulator", value: p.akumulator }
-                      ].map((spec, idx) => {
-                        const isND = spec.value === "N/D" || !spec.value;
-                        return (
-                          <div key={idx} className="flex justify-between items-center py-2.5 border-b border-gray-200 last:border-0">
-                            <span className="text-gray-500 font-bold text-[11px] uppercase tracking-widest">{spec.label}:</span>
-                            <span className={`text-[14px] font-bold uppercase ${isND ? "text-gray-300" : "text-black"}`}>
-                              {spec.value || "N/D"}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
+                    <div className="flex-grow flex flex-col">
+                      <div className="mb-4">
+                        <p className="text-[11px] text-gray-500 font-bold uppercase tracking-widest mb-1 font-heading">{p.marka}</p>
+                        <h3 className={`text-[18px] font-semibold uppercase leading-relaxed tracking-tighter ${theme.text} font-heading min-h-[60px] line-clamp-3`}>{p.nazwa}</h3>
+                        <span className={`font-bold text-3xl mt-1 block ${theme.price} font-sans`}>{p.cena}</span>
+                      </div>
+                      
+                      <div className={`space-y-0 pt-2 border-t-2 ${darkMode ? "border-slate-800" : "border-black/10"} mb-6`}>
+                        {[
+                          { label: "Marka", value: p.marka },
+                          { label: "Kategoria", value: `${p.dzial} / ${p.podkategoria}` },
+                          { label: "Mocowanie", value: p.mocowanie },
+                          { label: "Rozmiar matrycy", value: p.matryca },
+                          { label: "Rozdzielczość", value: p.mpix },
+                          { label: "Akumulator", value: p.akumulator }
+                        ].map((spec, idx) => {
+                          const isND = spec.value === "N/D" || !spec.value;
+                          return (
+                            <div key={idx} className={`flex justify-between items-center py-2.5 border-b ${darkMode ? "border-slate-800" : "border-gray-200"} last:border-0`}>
+                              <span className="text-gray-500 font-bold text-[11px] uppercase tracking-widest">{spec.label}:</span>
+                              <span className={`text-[14px] font-bold uppercase ${isND ? "text-gray-500" : theme.text}`}>
+                                {spec.value || "N/D"}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
 
-                    <a href={p.link} target="_blank" rel="noopener noreferrer" className="mt-auto w-full py-3 border-2 border-black bg-[#00B7D1] text-black text-[12px] font-bold uppercase flex items-center justify-center gap-2 hover:translate-y-[-2px] transition-all font-heading tracking-widest shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                      <ExternalLink size={16} /> Zobacz w sklepie
-                    </a>
+                      <a href={p.link} target="_blank" rel="noopener noreferrer" className="mt-auto w-full py-3 border-2 border-black bg-[#00B7D1] text-black text-[12px] font-bold uppercase flex items-center justify-center gap-2 hover:translate-y-[-2px] transition-all font-heading tracking-widest shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                        <ExternalLink size={16} /> Zobacz w sklepie
+                      </a>
+                    </div>
                   </div>
-                </div>
-              ))}
-              {selectedProducts.length < 3 && Array.from({ length: 3 - selectedProducts.length }).map((_, i) => (
-                <div key={i} className="bg-white border-2 border-black border-dashed opacity-30 p-6 flex items-center justify-center">
-                  <p className="font-bold uppercase italic text-[10px] font-heading tracking-widest">Miejsce na produkt</p>
-                </div>
-              ))}
-            </div>
+                ))}
+                {selectedProducts.length < 3 && Array.from({ length: 3 - selectedProducts.length }).map((_, i) => (
+                  <div key={`empty-${i}`} className={`border-2 ${theme.border} border-dashed opacity-30 p-6 flex items-center justify-center ${darkMode ? "bg-black" : "bg-white"}`}>
+                    <p className="font-bold uppercase italic text-[10px] font-heading tracking-widest">Miejsce na produkt</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="w-full overflow-x-auto pb-4">
+                <table className={`w-full text-left border-collapse border-2 ${theme.border} ${darkMode ? "bg-black" : "bg-white"}`}>
+                  <thead>
+                    <tr className={`border-b-2 ${theme.border} ${darkMode ? "bg-[#171E19]" : "bg-gray-100"}`}>
+                      <th className={`py-4 px-5 text-[12px] uppercase font-bold tracking-widest text-slate-500 min-w-[150px] border-r-2 ${theme.border}`}>Cecha</th>
+                      {selectedProducts.map((p, idx) => (
+                        <th key={p.id} className={`py-4 px-5 text-[14px] uppercase font-black tracking-widest ${theme.text} min-w-[250px] ${idx < selectedProducts.length - 1 ? `border-r-2 ${theme.border}` : ""}`}>
+                          {p.nazwa}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[
+                      { key: "marka", label: "Marka" },
+                      { key: "mocowanie", label: "Mocowanie" },
+                      { key: "matryca", label: "Rozmiar matrycy" },
+                      { key: "mpix", label: "Rozdzielczość" },
+                      { key: "akumulator", label: "Akumulator" },
+                      { key: "cena", label: "Cena", isHighlight: true }
+                    ].map((feature, fIdx) => (
+                      <tr key={feature.key} className={`border-b ${darkMode ? "border-slate-800" : "border-gray-200"} ${fIdx % 2 === 0 ? (darkMode ? "bg-black" : "bg-white") : (darkMode ? "bg-[#1f2922]" : "bg-gray-50")} hover:bg-[#00B7D1]/10 transition-colors`}>
+                        <td className={`py-4 px-5 text-[12px] font-bold text-slate-500 uppercase tracking-widest border-r-2 ${theme.border}`}>{feature.label}</td>
+                        {selectedProducts.map((p, idx) => {
+                          const isND = p[feature.key] === "N/D" || !p[feature.key];
+                          return (
+                            <td key={`${p.id}-${feature.key}`} className={`py-4 px-5 text-[14px] font-bold uppercase ${isND ? "text-slate-500" : theme.text} ${idx < selectedProducts.length - 1 ? `border-r-2 ${theme.border}` : ""} ${feature.isHighlight ? `text-xl ${theme.price}` : ""}`}>
+                              {p[feature.key] || "N/D"}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                    <tr className={`border-t-4 ${theme.border} ${darkMode ? "bg-black" : "bg-white"}`}>
+                      <td className={`py-4 px-5 border-r-2 ${theme.border}`}></td>
+                      {selectedProducts.map((p, idx) => (
+                        <td key={`${p.id}-action`} className={`py-4 px-5 text-center ${idx < selectedProducts.length - 1 ? `border-r-2 ${theme.border}` : ""}`}>
+                          <a href={p.link} target="_blank" rel="noopener noreferrer" className="inline-flex w-full py-3 border-2 border-black bg-[#00B7D1] text-black text-[12px] font-bold uppercase items-center justify-center gap-2 hover:translate-y-[-2px] transition-all font-heading tracking-widest shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                            <ExternalLink size={16} /> Sklep
+                          </a>
+                        </td>
+                      ))}
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            )}
             
             <div className="mt-12 flex justify-center">
               <button onClick={() => setShowComparison(false)} className="px-12 py-4 bg-[#EEE800] text-black text-[14px] font-bold uppercase border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all font-heading tracking-widest">
