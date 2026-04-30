@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 export async function GET() {
   const token = process.env.NEXT_PUBLIC_AIRTABLE_TOKEN;
   const baseId = process.env.AIRTABLE_BASE_ID || 'appKv6wNZURjEnver';
-  const tableName = 'Produkty';
+  const tableName = process.env.AIRTABLE_TABLE_NAME || 'Produkty';
 
   // Logowanie BASE_ID dla celów debugowania (bez tokenu!)
   console.log("BASE_ID:", baseId);
@@ -21,7 +21,7 @@ export async function GET() {
 
     // Loop until all records are fetched (Airtable limit is 100 per page)
     do {
-      const url = `https://api.airtable.com/v0/${baseId}/${encodeURIComponent(tableName)}?maxRecords=300&pageSize=100${offset ? `&offset=${offset}` : ''}`;
+      const url = `https://api.airtable.com/v0/${baseId}/${encodeURIComponent(tableName)}${offset ? `?offset=${offset}` : ''}`;
       
       const response = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` },
@@ -55,30 +55,16 @@ export async function GET() {
       }
 
       const data = await response.json();
-      allRecords = [...allRecords, ...data.records];
+      if (data.records) {
+        allRecords = [...allRecords, ...data.records];
+      }
       offset = data.offset;
       
     } while (offset);
 
-    // Mapowanie danych na backendzie
-    const mappedProducts = allRecords.map((record: any) => ({
-      id: record.id,
-      nazwa: record.fields.title || "Bez nazwy",
-      brand: record.fields.brand || "Brak marki",
-      marka: (record.fields.brand || "Brak marki").toUpperCase(),
-      cena: record.fields.price ? `${record.fields.price} zł` : "Cena na zapytanie",
-      dzial: record.fields.dzial || "Fotografia",
-      podkategoria: record.fields.podkategoria || "Aparat",
-      mocowanie: record.fields.mocowanie || "N/D",
-      format: record.fields.format || "N/D",
-      mpix: record.fields.mpix || "N/D",
-      matryca: record.fields.matryca || "N/D",
-      akumulator: record.fields.akumulator || "N/D",
-      link: record.fields.link || "#",
-      akcesoria: record.fields.akcesoria ? (typeof record.fields.akcesoria === 'string' ? JSON.parse(record.fields.akcesoria) : record.fields.akcesoria) : []
-    }));
+    console.log("Pobrano rekordy:", allRecords.length);
 
-    return NextResponse.json(mappedProducts);
+    return NextResponse.json(allRecords);
   } catch (error: any) {
     console.error('Fatal API Error:', error);
     return NextResponse.json({ 
