@@ -18,6 +18,7 @@ export default function KatalogCyfroweUltraFix() {
   useEffect(() => {
     // Pobieranie danych z Airtable
     const fetchData = async () => {
+      console.log('Fetching data...');
       try {
         const res = await fetch('/api/airtable');
         const data = await res.json();
@@ -73,7 +74,7 @@ export default function KatalogCyfroweUltraFix() {
       <div className={`min-h-screen flex items-center justify-center ${theme.bg} ${theme.text} font-sans antialiased`}>
         <div className="flex flex-col items-center gap-4">
           <div className="w-12 h-12 border-4 border-[#00B7D1] border-t-transparent rounded-full animate-spin"></div>
-          <p className="font-medium uppercase italic tracking-widest text-[12px] font-heading">Ładowanie katalogu...</p>
+          <p className="font-medium uppercase italic tracking-widest text-[12px] font-heading">Ładowanie danych...</p>
         </div>
       </div>
     );
