@@ -40,10 +40,51 @@ export async function GET() {
     }
 
     const data = await response.json();
-    console.log('API ZAKOŃCZYŁO PRACĘ. Pobrano rekordów:', data.records?.length || 0);
+    const records = data.records || [];
+    console.log('API ZAKOŃCZYŁO PRACĘ. Pobrano rekordów:', records.length);
 
-    // Zwracamy surowe dane bezpośrednio z Airtable (tablicę rekordów)
-    return NextResponse.json(data.records || []);
+    // Zabezpieczone mapowanie wspierające polskie i angielskie nazwy kolumn
+    const mappedProducts = records.map((record: any) => {
+      const fields = record.fields || {};
+      
+      // Obsługa zdjęć (Airtable zwraca tablicę obiektów attachment)
+      let zdjecieUrl = '';
+      const zdjecia = fields['Zdjęcie'] || fields['Zdjecie'] || fields['zdjęcie'] || fields['image'] || fields['Photo'];
+      if (Array.isArray(zdjecia) && zdjecia.length > 0 && zdjecia[0].url) {
+        zdjecieUrl = zdjecia[0].url;
+      } else if (typeof zdjecia === 'string') {
+        zdjecieUrl = zdjecia; 
+      }
+
+      const getField = (...keys: string[]) => {
+        for (const k of keys) {
+          if (fields[k] !== undefined && fields[k] !== null && fields[k] !== '') return fields[k];
+        }
+        return null;
+      };
+
+      const cenaVal = getField('Cena', 'cena', 'price', 'Price');
+
+      return {
+        id: record.id,
+        nazwa: getField('Nazwa', 'nazwa', 'title', 'Name', 'name') || "Bez nazwy",
+        brand: getField('Marka', 'marka', 'brand', 'Brand') || "Brak marki",
+        marka: (getField('Marka', 'marka', 'brand', 'Brand') || "Brak marki").toUpperCase(),
+        cena: cenaVal ? `${cenaVal} zł` : "Cena na zapytanie",
+        dzial: getField('Dział', 'Dzial', 'dzial', 'Category') || "Fotografia",
+        podkategoria: getField('Podkategoria', 'podkategoria', 'Subcategory') || "Aparat",
+        mocowanie: getField('Mocowanie', 'mocowanie', 'Mount') || "N/D",
+        format: getField('Format', 'format') || "N/D",
+        mpix: getField('Mpix', 'mpix', 'Megapixels') || "N/D",
+        matryca: getField('Matryca', 'matryca', 'Sensor') || "N/D",
+        akumulator: getField('Akumulator', 'akumulator', 'Battery') || "N/D",
+        link: getField('Link', 'link', 'url', 'URL') || "#",
+        zdjecie: zdjecieUrl,
+        akcesoria: getField('Akcesoria', 'akcesoria') || []
+      };
+    });
+
+    return NextResponse.json(mappedProducts);
 
   } catch (error: any) {
     console.error('Krytyczny wyjątek w bloku try/catch:', error);
