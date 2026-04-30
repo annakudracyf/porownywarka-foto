@@ -1,76 +1,55 @@
 import { NextResponse } from 'next/server';
 
 export async function GET() {
-  const token = process.env.NEXT_PUBLIC_AIRTABLE_TOKEN;
-  const baseId = process.env.AIRTABLE_BASE_ID || 'appKv6wNZURjEnver';
-  const tableName = process.env.AIRTABLE_TABLE_NAME || 'Produkty';
-
-  // Logowanie BASE_ID dla celów debugowania (bez tokenu!)
-  console.log("BASE_ID:", baseId);
-
-  if (!token) {
-    return NextResponse.json({ error: "Brak tokenu NEXT_PUBLIC_AIRTABLE_TOKEN w środowisku" }, { status: 500 });
-  }
+  console.log('API ZACZYNA PRACĘ');
 
   try {
-    let allRecords: any[] = [];
-    let offset = '';
+    // Vercel może mieć ustawione różne zmienne, sprawdzamy obie
+    const token = process.env.AIRTABLE_API_KEY || process.env.NEXT_PUBLIC_AIRTABLE_TOKEN || '';
+    
+    // Sprawdzenie, czy klucz zaczyna się od pat i czy ma kropkę
+    if (!token.startsWith('pat') || !token.includes('.')) {
+      console.error('BŁĄD: Zły format klucza Airtable. Token:', token.substring(0, 5) + '...');
+      return NextResponse.json({ error: 'ZŁY FORMAT KLUCZA' }, { status: 500 });
+    }
 
-    // Logowanie przed zapytaniem
-    console.log("Próba połączenia z tabelą Produkty...");
+    const baseId = process.env.AIRTABLE_BASE_ID || 'appKv6wNZURjEnver';
+    const tableName = 'Produkty'; // Zgodnie z prośbą, użyto dokładnie nazwy "Produkty"
 
-    // Loop until all records are fetched (Airtable limit is 100 per page)
-    do {
-      const url = `https://api.airtable.com/v0/${baseId}/${encodeURIComponent(tableName)}${offset ? `?offset=${offset}` : ''}`;
-      
-      const response = await fetch(url, {
-        headers: { Authorization: `Bearer ${token}` },
-        next: { revalidate: 0 }
-      });
+    const url = `https://api.airtable.com/v0/${baseId}/${encodeURIComponent(tableName)}`;
+    
+    console.log(`Rozpoczynam zapytanie do: ${url}`);
 
-      if (!response.ok) {
-        let errorMsg = "Błąd Airtable API";
-        let errorDetail = {};
-        
-        try {
-          const errorData = await response.json();
-          errorDetail = errorData;
-          // Airtable zazwyczaj zwraca błąd w formacie { error: { message: "...", type: "..." } }
-          if (errorData.error && errorData.error.message) {
-            errorMsg = `Airtable Error: ${errorData.error.message}`;
-          } else if (errorData.message) {
-            errorMsg = `Airtable Error: ${errorData.message}`;
-          }
-        } catch (e) {
-          errorMsg = `Błąd Airtable (${response.status}): ${response.statusText}`;
-        }
+    // Prosty fetch (standardowe zapytanie HTTP)
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
+      // Wymuszamy brak cachowania na poziomie Vercela
+      cache: 'no-store'
+    });
 
-        console.error("Airtable API Error Detail:", errorDetail);
-        
-        return NextResponse.json({ 
-          error: errorMsg, 
-          status: response.status,
-          details: errorDetail 
-        }, { status: response.status });
-      }
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Błąd HTTP od Airtable:', response.status, errorText);
+      return NextResponse.json({ 
+        error: 'Błąd HTTP od Airtable', 
+        status: response.status,
+        details: errorText
+      }, { status: response.status });
+    }
 
-      const data = await response.json();
-      if (data.records) {
-        allRecords = [...allRecords, ...data.records];
-      }
-      offset = data.offset;
-      
-    } while (offset);
+    const data = await response.json();
+    console.log('API ZAKOŃCZYŁO PRACĘ. Pobrano rekordów:', data.records?.length || 0);
 
-    console.log("Pobrano rekordy:", allRecords.length);
+    // Zwracamy surowe dane bezpośrednio z Airtable (tablicę rekordów)
+    return NextResponse.json(data.records || []);
 
-    return NextResponse.json(allRecords);
   } catch (error: any) {
-    console.error('Fatal API Error:', error);
+    console.error('Krytyczny wyjątek w bloku try/catch:', error);
     return NextResponse.json({ 
-      error: "Wystąpił krytyczny błąd serwera", 
-      message: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      error: 'Wystąpił krytyczny błąd w API', 
+      message: error.message 
     }, { status: 500 });
   }
 }
