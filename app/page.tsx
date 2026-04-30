@@ -23,14 +23,27 @@ export default function KatalogCyfroweUltraFix() {
         const res = await fetch('/api/airtable');
         const data = await res.json();
         
-        // Dane są już zmapowane na backendzie (route.ts)
-        setProdukty(data);
+        console.log('Dane odebrane na frontendzie:', data);
+        
+        // Zabezpieczenie: mapujemy surowe rekordy Airtable na bezpieczne obiekty
+        const bezpieczneProdukty = (Array.isArray(data) ? data : []).map((record) => {
+          const fields = record.fields || {};
+          return {
+            id: record.id || Math.random().toString(),
+            nazwa: fields.title || fields.Nazwa || fields.Name || fields.nazwa || "Bez nazwy",
+            brand: fields.brand || fields.Marka || fields.marka || "Brak marki",
+            dzial: fields.dzial || fields.Dział || "Fotografia",
+            podkategoria: fields.podkategoria || fields.Podkategoria || "Aparat"
+          };
+        });
+
+        setProdukty(bezpieczneProdukty);
         setLoading(false);
       } catch (err) {
         console.error('Error fetching Airtable data:', err);
         setLoading(false);
       }
-    };
+    }
 
     fetchData();
   }, []);
@@ -62,10 +75,16 @@ export default function KatalogCyfroweUltraFix() {
 
   // Logika filtrowania
   const filteredProducts = produkty.filter(p => {
-    const matchesDzial = p.dzial === dzial;
-    const matchesPodkategoria = p.podkategoria === podkategoria;
-    const matchesSearch = p.nazwa.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          p.brand.toLowerCase().includes(searchQuery.toLowerCase());
+    if (!p) return false;
+    const pDzial = p.dzial || "";
+    const pPodkat = p.podkategoria || "";
+    const pNazwa = p.nazwa || "";
+    const pBrand = p.brand || "";
+    
+    const matchesDzial = pDzial === dzial;
+    const matchesPodkategoria = pPodkat === podkategoria;
+    const matchesSearch = pNazwa.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          pBrand.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesDzial && matchesPodkategoria && matchesSearch;
   });
 
@@ -176,113 +195,23 @@ export default function KatalogCyfroweUltraFix() {
 
           {/* MAIN CONTENT */}
           <main>
-            {viewMode === "karty" ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className={`${theme.card} p-6 border-2 ${theme.border} ${theme.shadow}`}>
+              <h2 className="text-xl font-bold mb-4 font-heading uppercase tracking-widest border-b-2 border-black pb-2 text-[#00B7D1]">Tryb testowy - tylko nazwy</h2>
+              <ul className="space-y-2">
                 {filteredProducts.map((p) => {
-                  const isSelected = selectedProducts.some(x => x.id === p.id);
+                  if (!p || !p.nazwa || p.nazwa === "Bez nazwy") return null; 
                   return (
-                    <div key={p.id} className={`${theme.card} border-2 ${theme.border} ${theme.shadow} flex flex-col h-full overflow-hidden`}>
-                      <div className={`h-40 ${darkMode ? "bg-black/40" : "bg-gray-100"} border-b-2 ${theme.border} flex items-center justify-center relative shrink-0`}>
-                        <Camera size={40} className="opacity-10" />
-                        <div className="absolute bottom-0 right-0 px-1.5 py-1 font-semibold text-[8px] uppercase border-l-2 border-t-2 border-black bg-[#EEE800] text-black font-heading tracking-widest leading-none">{p.marka}</div>
-                      </div>
-                      <div className="p-5 flex flex-col flex-grow">
-                        <div className="flex-grow">
-                          <div className="mb-4">
-                            <p className="text-[11px] text-slate-500 uppercase tracking-widest font-bold mb-1 font-heading">{p.marka}</p>
-                            <h3 className={`text-[18px] font-semibold uppercase leading-relaxed tracking-tight ${theme.text} font-heading min-h-[3.5rem] line-clamp-3`}>{p.nazwa}</h3>
-                            <span className={`font-medium text-2xl mt-1 block ${theme.price} font-sans`}>{p.cena}</span>
-                          </div>
-
-                          <div className="space-y-0 text-[14px] border-t border-black/10 pt-2 mb-6">
-                            {[
-                              { label: "Marka", value: p.marka },
-                              { label: "Mocowanie", value: p.mocowanie },
-                              { label: "Rozmiar matrycy", value: p.matryca },
-                              { label: "Akumulator", value: p.akumulator, highlight: p.akumulator !== "N/D" }
-                            ].map((spec, idx) => (
-                              <div key={idx} className={`flex justify-between py-2 border-b border-black/5 last:border-0 ${spec.highlight ? (darkMode ? "bg-[#00B7D1]/10 px-1 -mx-1" : "bg-[#00B7D1]/5 px-1 -mx-1") : ""}`}>
-                                <span className={`font-bold uppercase ${darkMode ? "text-slate-400" : "text-slate-900"} text-[11px]`}>{spec.label}:</span>
-                                <span className={`font-medium ${darkMode ? "text-white" : "text-black"} ${spec.highlight ? "text-[#00B7D1]" : ""}`}>{spec.value}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-
-                        <div className="flex gap-2 mt-auto">
-                          {/* PRZYCISK LINK */}
-                          <a 
-                            href={p.link} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="flex-1 py-3 border border-white/20 bg-black text-white hover:bg-white/10 transition-all flex items-center justify-center gap-2 text-[10px] font-medium uppercase font-heading tracking-wider"
-                          >
-                            <ExternalLink size={14} /> LINK
-                          </a>
-
-                          <button onClick={() => handleTogglePorownaj(p)}
-                            className={`flex-[2] py-3 border-2 ${theme.border} flex items-center justify-center gap-2 text-[10px] font-medium uppercase transition-all font-heading tracking-widest
-                            ${isSelected ? "bg-[#EEE800] text-black" : "text-white bg-[#00B7D1]"}`}>
-                            {isSelected ? <X size={16} /> : <Plus size={16} />} {isSelected ? "Usuń" : "Porównaj"}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
+                    <li key={p.id} className="p-3 border-b border-black/10 flex justify-between items-center text-sm md:text-base">
+                      <span className="font-bold">{p.nazwa}</span>
+                      <span className="text-xs text-gray-500 ml-4 shrink-0 uppercase">{p.brand} | {p.dzial}</span>
+                    </li>
                   );
                 })}
                 {filteredProducts.length === 0 && (
-                  <div className="col-span-full py-20 text-center opacity-50 font-medium uppercase font-heading tracking-widest">Nie znaleziono produktów</div>
+                  <li className="py-10 text-center opacity-50 font-medium uppercase font-heading tracking-widest">Brak produktów do wyświetlenia (Sprawdź konsolę)</li>
                 )}
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className={`w-full text-left border-collapse border-2 ${theme.border} ${theme.card}`}>
-                  <thead className={`${darkMode ? "bg-black/50" : "bg-gray-100"} border-b-2 ${theme.border}`}>
-                    <tr>
-                      <th className="p-5 text-[11px] uppercase font-bold font-heading tracking-widest text-slate-400 w-[80px]">Marka</th>
-                      <th className="p-5 text-[11px] uppercase font-bold font-heading tracking-widest text-slate-400 min-w-[250px]">Nazwa</th>
-                      <th className="p-5 text-[11px] uppercase font-bold font-heading tracking-widest text-slate-400 min-w-[120px]">Mocowanie</th>
-                      <th className="p-5 text-[11px] uppercase font-bold font-heading tracking-widest text-slate-400 min-w-[140px]">Rozmiar matrycy</th>
-                      <th className="p-5 text-[11px] uppercase font-bold font-heading tracking-widest text-slate-400 min-w-[140px]">Akumulator</th>
-                      <th className="p-5 text-[11px] uppercase font-bold font-heading tracking-widest text-slate-400 min-w-[120px]">Cena</th>
-                      <th className="p-5 text-[11px] uppercase font-bold font-heading tracking-widest text-slate-400 w-[180px] text-center">Akcja</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredProducts.map((p) => {
-                      const isSelected = selectedProducts.some(x => x.id === p.id);
-                      return (
-                        <tr key={p.id} className={`border-b ${theme.border} hover:${darkMode ? "bg-white/5" : "bg-black/5"} transition-colors`}>
-                          <td className="p-5 text-[12px] font-bold text-slate-500 uppercase tracking-wider font-sans">{p.marka}</td>
-                          <td className={`p-5 text-[18px] font-semibold font-heading tracking-tight leading-relaxed min-w-[250px] ${theme.text}`}>{p.nazwa}</td>
-                          <td className={`p-5 text-[14px] font-bold font-sans min-w-[120px] ${darkMode ? "text-slate-100" : "text-slate-700"}`}>{p.mocowanie}</td>
-                          <td className={`p-5 text-[14px] font-bold font-sans min-w-[140px] ${darkMode ? "text-white" : "text-black"}`}>{p.matryca}</td>
-                          <td className={`p-5 text-[14px] font-bold font-sans min-w-[140px] ${darkMode ? "text-white" : "text-black"}`}>{p.akumulator}</td>
-                          <td className={`p-5 text-[16px] font-bold ${theme.price} font-sans whitespace-nowrap min-w-[120px]`}>{p.cena}</td>
-                          <td className="p-4">
-                            <div className="flex gap-2">
-                              <a 
-                                href={p.link} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="px-3 py-2 border border-white/20 bg-black text-white hover:bg-white/10 transition-all flex items-center justify-center gap-2 text-[10px] font-medium uppercase font-heading tracking-wider"
-                              >
-                                <ExternalLink size={14} /> LINK
-                              </a>
-                              <button onClick={() => handleTogglePorownaj(p)}
-                                className={`px-4 py-2 border-2 ${theme.border} text-[10px] font-medium uppercase transition-all font-heading tracking-widest
-                                ${isSelected ? "bg-[#EEE800] text-black" : "text-white bg-[#00B7D1]"}`}>
-                                {isSelected ? "Usuń" : "Porównaj"}
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
+              </ul>
+            </div>
           </main>
         </div>
       </div>
